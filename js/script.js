@@ -48,7 +48,86 @@ function handleCommand(cmdStr) {
 
 }
 
+var VALID_COMMANDS = [];
+
+function initValidCommands() {
+  VALID_COMMANDS.push.apply(VALID_COMMANDS, Object.keys(CMDS));
+  VALID_COMMANDS.push.apply(VALID_COMMANDS, Object.keys(ITEMS));
+  VALID_COMMANDS.push.apply(VALID_COMMANDS, ['north', 'south', 'east', 'west']);
+  actions = [];
+  for (var i = 0; i < Object.keys(TILES).length; i++) {
+    if (TILES[Object.keys(TILES)[i]].hasOwnProperty("actions")) {
+      for (var j = 0; j < Object.keys(TILES[Object.keys(TILES)[i]].actions).length; j++) {
+        var action = Object.keys(TILES[Object.keys(TILES)[i]].actions)[j];
+        if (actions.indexOf(action) < 0) {
+          actions.push(action);
+        }
+      }
+    }
+  }
+  VALID_COMMANDS.push.apply(VALID_COMMANDS, actions);
+}
+
+var current_suggestions = [];
+var current_suggestion_index = 0;
+var tabCompletionUserInput = "";
+
+function tabCompletion() {
+  current_suggestions = [];
+  var cur_text = $term_input.val();
+  var cur_parts = cur_text.split(" ");
+  var last_part = cur_parts[cur_parts.length - 1];
+  console.log("last part: " + last_part);
+
+  if (tabCompletionUserInput === "") {
+    tabCompletionUserInput = last_part;
+  }
+
+  for (var i = 0; i < VALID_COMMANDS.length; i++) {
+    //console.log(VALID_COMMANDS[i] + " - " + last_part);
+    if (VALID_COMMANDS[i].startsWith(tabCompletionUserInput)) {
+      current_suggestions.unshift(VALID_COMMANDS[i]);
+    } else if (VALID_COMMANDS[i].indexOf(tabCompletionUserInput) > -1) {
+      current_suggestions.push(VALID_COMMANDS[i]);
+    }
+  }
+
+  if (current_suggestions.length > 0) {
+    console.log(current_suggestions + "\n" + current_suggestion_index);
+    cur_parts[cur_parts.length - 1] = current_suggestions[current_suggestion_index];
+    $term_input.val(cur_parts.join(" "));
+    if (current_suggestions.length > 1) {
+      current_suggestion_index++;
+      //console.log(current_suggestion_index + " - " + current_suggestions.length - 1);
+      if (current_suggestion_index > current_suggestions.length - 1) {
+        current_suggestion_index = 0;
+      }
+    }
+  }
+
+}
+
+initValidCommands();
+
+$term_input.on('keydown', function (e) {
+  //console.log(e.keyCode);
+  if (e.keyCode === 9 && !e.shiftKey) {
+    //console.log('Press Key Button');
+    e.preventDefault();
+    tabCompletion()
+  }
+  if (e.keyCode === 8) {
+    current_suggestions = [];
+    current_suggestion_index = 0;
+    tabCompletionUserInput = "";
+  }
+});
+
+
 $term_input.on('keypress', function (e) {
+  current_suggestions = [];
+  current_suggestion_index = 0;
+  tabCompletionUserInput = "";
   if (e.which === 13) {
     handleCommand($term_input.val());
     history_index = 0;
